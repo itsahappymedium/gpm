@@ -1,6 +1,4 @@
 <?php
-require_once('vendor/autoload.php');
-
 use splitbrain\phpcli\CLI;
 use splitbrain\PHPArchive\Zip;
 
