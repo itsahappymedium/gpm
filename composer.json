@@ -17,7 +17,7 @@
   "homepage": "https://github.com/itsahappymedium/gpm",
   "license": "MIT",
   "bin": [
-    "gpm.php"
+    "bin/gpm"
   ],
   "require": {
     "php": "^7.3|^8.0",
