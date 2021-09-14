@@ -1,0 +1,27 @@
+{
+  "name": "itsahappymedium/gpm",
+  "description": "A PHP Command Line tool that makes it easy to download dependencies from GitHub.",
+  "keywords": [
+    "cli",
+    "git",
+    "manager",
+    "package"
+  ],
+  "authors": [
+    {
+      "name": "Happy Medium",
+      "email": "developers@itsahappymedium.com",
+      "homepage": "https://itsahappymedium.com"
+    }
+  ],
+  "homepage": "https://github.com/itsahappymedium/gpm",
+  "license": "MIT",
+  "bin": [
+    "gpm.php"
+  ],
+  "require": {
+    "php": "^7.3|^8.0",
+    "splitbrain/php-archive": "^1.2",
+    "splitbrain/php-cli": "^1.1"
+  }
+}
