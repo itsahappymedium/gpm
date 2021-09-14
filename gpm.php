@@ -88,6 +88,16 @@ class GPM extends CLI {
     fwrite($channel, $message . "\n");
   }
 
+  protected function create_directory($directory) {
+    $directories = explode('/', $directory);
+
+    foreach($directories as $dir) {
+      if (!file_exists($dir)) {
+        mkdir($dir);
+      }
+    }
+  }
+
   protected function clean_directory($directory, $delete = false, $only_delete_if_already_empty = false) {
     if (file_exists($directory)) {
       $empty = true;
@@ -279,6 +289,8 @@ class GPM extends CLI {
     $download_url = "https://github.com/$package/archive";
     $alt_download_url = null;
 
+    $this->create_directory($install_path);
+
     if (!$version) {
       $versions = $this->get_available_package_versions($package, 1);
 
@@ -357,6 +369,8 @@ class GPM extends CLI {
 
       rename($tmp_package_path, $package_path);
     }
+
+    $this->clean_directory($tmp_path, true);
 
     if ($save) {
       $this->edit_dependencies($package, $version, $path);
