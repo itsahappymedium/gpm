@@ -71,27 +71,27 @@ class GPM extends CLI {
     $active_colors = array();
 
     $text = preg_replace_callback('/\<(.[^\>]*?)\>/', function ($matches) use (&$active_colors) {
-        $new_color = $matches[1];
-        $colors = array();
+      $new_color = $matches[1];
+      $colors = array();
 
-        if (substr($new_color, 0, 1) === '/') {
-            array_pop($active_colors);
-            $colors[] = 'reset';
-        } else {
-            $active_colors[] = $new_color;
-        }
+      if (substr($new_color, 0, 1) === '/') {
+        array_pop($active_colors);
+        $colors[] = 'reset';
+      } else {
+        $active_colors[] = $new_color;
+      }
 
-        $colors = array_merge($colors, $active_colors);
+      $colors = array_merge($colors, $active_colors);
 
-        return implode('', array_map(function ($color) {
-            return $this->colors->getColorCode($color);
-        }, $colors));
+      return implode('', array_map(function ($color) {
+        return $this->colors->getColorCode($color);
+      }, $colors));
     }, $text);
 
     fwrite($channel, $text . "\n");
 
     if (end($active_colors) !== 'reset') {
-        $this->colors->reset($channel);
+      $this->colors->reset($channel);
     }
   }
 
