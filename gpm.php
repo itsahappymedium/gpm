@@ -55,10 +55,10 @@ class GPM extends CLI {
         break;
       case 'versions':
         if ($versions = $this->get_available_package_versions($args[0])) {
-          $versions = implode('\'</>, \'<green>', $versions);
-          $this->write("[ <green>'$versions'</green> ]");
+          $versions = implode('\'</green>, \'<green>', $versions);
+          $this->print("[ <green>'$versions'</green> ]");
         } else {
-          $this->write("<lightred>Error</>: Could not find the package <green>$args[0]</>.\n");
+          $this->print("<lightred>Error</lightred>: Could not find the package <green>$args[0]</green>.\n");
         }
 
         break;
@@ -67,23 +67,32 @@ class GPM extends CLI {
     }
   }
 
-  protected function write($message, $channel = STDOUT) {
-    $used_colors = array('reset');
+  protected function print($text, $channel = STDOUT) {
+    $active_colors = array();
 
-    $message = preg_replace_callback('/\<(.[^\>]*?)\>/', function ($matches) use (&$used_colors) {
-      $color = $matches[1];
+    $text = preg_replace_callback('/\<(.[^\>]*?)\>/', function ($matches) use (&$active_colors) {
+        $new_color = $matches[1];
+        $colors = array();
 
-      if (substr($color, 0, 1) === '/') {
-        array_pop($used_colors);
-        $color = end($used_colors);
-      } else {
-        $used_colors[] = $color;
-      }
+        if (substr($new_color, 0, 1) === '/') {
+            array_pop($active_colors);
+            $colors[] = 'reset';
+        } else {
+            $active_colors[] = $new_color;
+        }
 
-      return $this->colors->getColorCode($color);
-    }, $message);
+        $colors = array_merge($colors, $active_colors);
 
-    fwrite($channel, $message . "\n");
+        return implode('', array_map(function ($color) {
+            return $this->colors->getColorCode($color);
+        }, $colors));
+    }, $text);
+
+    fwrite($channel, $text . "\n");
+
+    if (end($active_colors) !== 'reset') {
+        $this->colors->reset($channel);
+    }
   }
 
   protected function create_directory($directory) {
@@ -126,7 +135,7 @@ class GPM extends CLI {
     $file = "$path/gpm.json";
 
     if (file_exists($file)) {
-      $this->write("<lightred>Error</>: <yellow>$file</> already exists.");
+      $this->print("<lightred>Error</lightred>: <yellow>$file</yellow> already exists.");
       return false;
     }
 
@@ -134,7 +143,7 @@ class GPM extends CLI {
     $results = file_put_contents($file, stripslashes($json));
 
     if ($results !== false) {
-      $this->write("<yellow>$file</> was created.");
+      $this->print("<yellow>$file</yellow> was created.");
       return true;
     }
 
@@ -145,18 +154,18 @@ class GPM extends CLI {
     $path = $path ? rtrim($path, '/') : '.';
     $file = "$path/gpm.json";
 
-    $this->write("Loading <yellow>$file</yellow>...");
+    $this->print("Loading <yellow>$file</yellow>...");
 
     if (
       !($json = @file_get_contents("$path/gpm.json")) ||
       !($info = @json_decode($json, true))
     ) {
-      $this->write("<lightred>Error</>: Could not read GPM file (<yellow>$file</>).");
+      $this->print("<lightred>Error</lightred>: Could not read GPM file (<yellow>$file</yellow>).");
       return false;
     }
 
     if (!isset($info['dependencies']) || !is_array($info['dependencies'])) {
-      $this->write("<lightred>Error</>: Invalid GPM file (<yellow>$file</>).");
+      $this->print("<lightred>Error</lightred>: Invalid GPM file (<yellow>$file</yellow>).");
       return false;
     }
 
@@ -176,7 +185,7 @@ class GPM extends CLI {
     $results = file_put_contents($file, stripslashes(json_encode($info, JSON_PRETTY_PRINT)));
 
     if ($results !== false) {
-      $this->write("<yellow>$file</> was updated.");
+      $this->print("<yellow>$file</yellow> was updated.");
       return true;
     }
 
@@ -252,7 +261,7 @@ class GPM extends CLI {
     if (!($info = $this->load_dependencies($path))) return false;
 
     $dependency_count = count($info['dependencies']);
-    $this->write("$dependency_count dependencies found.");
+    $this->print("$dependency_count dependencies found.");
 
     if (isset($info['dependencies'])) {
       foreach($info['dependencies'] as $package => $package_version) {
@@ -261,7 +270,7 @@ class GPM extends CLI {
 
       $this->clean_directory($tmp_path, true);
 
-      $this->write('Done!');
+      $this->print('Done!');
 
       return true;
     }
@@ -295,7 +304,7 @@ class GPM extends CLI {
       if ($versions) {
         $version = $versions[0];
       } else {
-        $this->write("<lightred>Error</>: Could not find the package <green>$package</>.");
+        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.");
         return false;
       }
     }
@@ -318,12 +327,12 @@ class GPM extends CLI {
       )
     ));
 
-    $this->write(" - <purple>Downloading</> <green>$package</> (<brown>$download_url</>)...");
+    $this->print(" - <purple>Downloading</purple> <green>$package</green> (<brown>$download_url</brown>)...");
     $download_contents = @fopen($download_url, 'r', false, $context);
 
     if (!$download_contents && $alt_download_url) {
       $download_url = $alt_download_url;
-      $this->write(" - <purple>Downloading</> <green>$package</> (<brown>$download_url</>)...");
+      $this->print(" - <purple>Downloading</purple> <green>$package</green> (<brown>$download_url</brown>)...");
       $download_contents = @fopen($download_url, 'r', false, $context);
     }
 
@@ -332,9 +341,9 @@ class GPM extends CLI {
 
       if ($versions) {
         $versions = implode(', ', $versions);
-        $this->write("<lightred>Error</>: Unable to find version <brown>$version</> of package <green>$package</>. Found: $versions...\n");
+        $this->print("<lightred>Error</lightred>: Unable to find version <brown>$version</brown> of package <green>$package</green>. Found: $versions...\n");
       } else {
-        $this->write("<lightred>Error</>: Could not find the package <green>$package</>.\n");
+        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n");
       }
 
       return false;
@@ -348,7 +357,7 @@ class GPM extends CLI {
     file_put_contents($tmp_package_path, $download_contents);
     fclose($download_contents);
 
-    $this->write(" - <cyan>Extracting</> <green>$tmp_package_path</>...");
+    $this->print(" - <cyan>Extracting</cyan> <green>$tmp_package_path</green>...");
 
     $extension = pathinfo($tmp_package_path, PATHINFO_EXTENSION);
 
