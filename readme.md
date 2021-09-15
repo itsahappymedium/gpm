@@ -14,17 +14,20 @@ When building a site in PHP, the two main options to downloading and installing 
 
 ## Installation
 
+### To a package (local)
+
 ```
 composer require itsahappymedium/gpm
+./vendor/bin/gpm help
 ```
 
-After that, it wouldn't be a bad idea to add the following to your `composer.json` file:
+### To your system (global)
 
-```json
-"scripts": {
-  "gpm": "vendor/bin/gpm"
-}
 ```
+composer global require itsahappymedium/gpm
+gpm help
+```
+
 
 ## Usage
 
@@ -49,7 +52,7 @@ Package names are `<github_username>/<repo_name>`. So if you wanted to install h
 Package versions can be a tag name, `dev-<branch>`, `#<commit_sha>`, or a URL (Zip files will be extracted). If a package version isn't found using the version/tag specified, it will try again with a `v` prepended (For example, if `1.3.1` doesn't exist, it will also try `v1.3.1`).
 
 
-### `gpm install [package] [--save/-s] [--path/-p <path>] [--install-path/-i <path>]`
+### `gpm install [--save/-s] [--path/-p <path>] [--install-path/-i <path>] [package]`
 
 If the `package` argument is passed, it will simply download and extract that package (also saving it to `gpm.json` if the `--save` or `-s` option is set), otherwise if no arguments are passed, all packages currently defined in `gpm.json` will be downloaded and extracted.
 
@@ -58,7 +61,7 @@ Set the `--path` or `-p` option to define a path to where the `gpm.json` file is
 Set the `--install-path` or `-i` option to define a path to download and extract packages to (Defaults to `gpm_modules` in the current directory).
 
 
-### `gpm uninstall <package> [--save/-s] [--path/-p <path>] [--install-path/-i <path>]`
+### `gpm uninstall [--save/-s] [--path/-p <path>] [--install-path/-i <path>] <package>`
 
 Deletes a package from the `gpm_modules` directory (or whatever directory the `--install-path` or `-i` option is set to) (also removing it from `gpm.json` if the `--save` or `-s` option is set).
 
@@ -71,6 +74,11 @@ Lists the versions available for the package passed to the `package` argument.
 ### `gpm init [--path/-p <path>]`
 
 Generates a `gpm.json` file in the current directory (or whatever directory the `--path` or `-p` option is set to).
+
+
+### `gpm help`
+
+Displays information on how to use GPM.
 
 
 ## License
