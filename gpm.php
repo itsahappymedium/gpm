@@ -4,7 +4,7 @@ use splitbrain\PHPArchive\Zip;
 
 class GPM extends CLI {
   protected function setup($options) {
-    $options->setHelp('The Git Package Manager');
+    $options->setHelp('A PHP Command Line tool that makes it easy to download dependencies from GitHub.');
 
     $options->registerCommand('install', 'Install a package');
     $options->registerArgument('package', 'Package name', false, 'install');
