@@ -98,9 +98,11 @@ class GPM extends CLI {
   protected function create_directory($directory) {
     $directories = explode('/', $directory);
 
-    foreach($directories as $dir) {
-      if (!file_exists($dir)) {
-        mkdir($dir);
+    foreach($directories as $i => $dir) {
+      $path = implode('/', array_slice($directories, 0, ($i + 1)));
+
+      if (!file_exists($path)) {
+        mkdir($path);
       }
     }
   }
