@@ -31,7 +31,7 @@ gpm help
 
 ## Usage
 
-GPM will read a list of dependencies from a `gpm.json` file that is structured like so:
+GPM will read a list of dependencies from a `gpm.json` file (and if that doesn't exist, `fec.json`) that is structured like so:
 
 ```json
 {

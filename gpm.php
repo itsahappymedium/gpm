@@ -133,8 +133,13 @@ class GPM extends CLI {
   }
 
   public function create_json_file($path) {
-    $path = $path ? rtrim($path, '/') : '.';
-    $file = "$path/gpm.json";
+    if (!$path) $path = '.';
+
+    if (file_exists($path) && is_dir($path)) {
+      $file = rtrim($path, '/') . '/gpm.json';
+    } else {
+      $file = $path;
+    }
 
     if (file_exists($file)) {
       $this->print("<lightred>Error</lightred>: <yellow>$file</yellow> already exists.", STDERR);
@@ -152,28 +157,52 @@ class GPM extends CLI {
     return false;
   }
 
-  public function load_dependencies($path) {
-    $path = $path ? rtrim($path, '/') : '.';
-    $file = "$path/gpm.json";
+  public function get_json_file_location($path) {
+    if (!$path) $path = '.';
 
-    if (
-      !($json = @file_get_contents("$path/gpm.json")) ||
-      !($info = @json_decode($json, true))
-    ) {
-      $this->print("<lightred>Error</lightred>: Could not read GPM file (<yellow>$file</yellow>).", STDERR);
+    if (file_exists($path) && is_dir($path)) {
+      $path = rtrim($path, '/');
+    } else {
+      $json_file = $path;
+      $path = dirname($path);
+    }
+
+    if ($json_file) {
+      if (!file_exists($json_file)) {
+        $this->print("<lightred>Error</lightred>: Could not find <yellow>$json_file</yellow>.", STDERR);
+        return false;
+      }
+    } elseif (file_exists("$path/gpm.json")) {
+      $json_file = "$path/gpm.json";
+    } elseif (file_exists("$path/fec.json")) {
+      $json_file = "$path/fec.json";
+    } else {
+      $this->print("<lightred>Error</lightred>: Could not find <yellow>$path/gpm.json</yellow> or <yellow>$path/fec.json</yellow>.", STDERR);
       return false;
     }
 
-    if (!isset($info['dependencies']) || !is_array($info['dependencies'])) {
-      $this->print("<lightred>Error</lightred>: Invalid GPM file (<yellow>$file</yellow>).", STDERR);
+    return $json_file;
+  }
+
+  public function load_dependencies($json_file) {
+    $json = @file_get_contents($json_file);
+
+    if (!($json = @json_decode($json, true))) {
+      $this->print("<lightred>Error</lightred>: An error occured while decoding JSON data (<yellow>$json_file</yellow>).", STDERR);
       return false;
     }
 
-    return $info;
+    if (!isset($json['dependencies']) || !is_array($json['dependencies'])) {
+      $this->print("<lightred>Error</lightred>: JSON data does not contain a dependencies item (<yellow>$json_file</yellow>).", STDERR);
+      return false;
+    }
+
+    return $json;
   }
 
   public function edit_dependencies($package, $version = false, $path = null) {
-    if (!($info = $this->load_dependencies($path))) return false;
+    if (!($json_file = $this->get_json_file_location($path))) return false;
+    if (!($info = $this->load_dependencies($json_file))) return false;
 
     if ($version) {
       $info['dependencies'][$package] = $version;
@@ -181,11 +210,11 @@ class GPM extends CLI {
       unset($info['dependencies'][$package]);
     }
 
-    $file = "$path/gpm.json";
-    $results = file_put_contents($file, stripslashes(json_encode($info, JSON_PRETTY_PRINT)));
+    $json_file = $this->get_json_file_location($path);
+    $results = file_put_contents($json_file, stripslashes(json_encode($info, JSON_PRETTY_PRINT)));
 
     if ($results !== false) {
-      $this->print("<yellow>$file</yellow> was updated.");
+      $this->print("<yellow>$json_file</yellow> was updated.");
       return true;
     }
 
@@ -254,11 +283,13 @@ class GPM extends CLI {
   }
 
   public function install($path = null, $install_path = null) {
-    $path = $path ? rtrim($path, '/') : '.';
+    if (!($json_file = $this->get_json_file_location($path))) return false;
+
+    $path = dirname($json_file);
     $install_path = $install_path ? rtrim($install_path, '/') : "$path/gpm_modules";
     $tmp_path = "$install_path/.tmp";
 
-    if (!($info = $this->load_dependencies($path))) return false;
+    if (!($info = $this->load_dependencies($json_file))) return false;
 
     $dependency_count = count($info['dependencies']);
     $this->print("$dependency_count dependencies found.");
@@ -279,7 +310,9 @@ class GPM extends CLI {
   }
 
   public function install_package($package, $version = null, $path = null, $install_path = null, $save = false) {
-    $path = $path ? rtrim($path, '/') : '.';
+    if (!($json_file = $this->get_json_file_location($path))) return false;
+
+    $path = dirname($json_file);
     $install_path = $install_path ? rtrim($install_path, '/') : "$path/gpm_modules";
     $tmp_path = "$install_path/.tmp";
 
