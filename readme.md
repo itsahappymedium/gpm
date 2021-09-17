@@ -81,6 +81,11 @@ Generates a `gpm.json` file in the current directory (or whatever directory the 
 Displays information on how to use GPM.
 
 
+## Related
+
+ - [FEC](https://github.com/itsahappymedium/fec) - A PHP Command Line tool that makes it easy to compile, concat, and minify front-end Javascript and CSS/SCSS dependencies.
+
+
 ## License
 
 MIT. See the [license.md file](license.md) for more info.
