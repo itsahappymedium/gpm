@@ -58,7 +58,7 @@ class GPM extends CLI {
           $versions = implode('\'</green>, \'<green>', $versions);
           $this->print("[ <green>'$versions'</green> ]");
         } else {
-          $this->print("<lightred>Error</lightred>: Could not find the package <green>$args[0]</green>.\n");
+          $this->print("<lightred>Error</lightred>: Could not find the package <green>$args[0]</green>.\n", STDERR);
         }
 
         break;
@@ -137,7 +137,7 @@ class GPM extends CLI {
     $file = "$path/gpm.json";
 
     if (file_exists($file)) {
-      $this->print("<lightred>Error</lightred>: <yellow>$file</yellow> already exists.");
+      $this->print("<lightred>Error</lightred>: <yellow>$file</yellow> already exists.", STDERR);
       return false;
     }
 
@@ -156,18 +156,16 @@ class GPM extends CLI {
     $path = $path ? rtrim($path, '/') : '.';
     $file = "$path/gpm.json";
 
-    $this->print("Loading <yellow>$file</yellow>...");
-
     if (
       !($json = @file_get_contents("$path/gpm.json")) ||
       !($info = @json_decode($json, true))
     ) {
-      $this->print("<lightred>Error</lightred>: Could not read GPM file (<yellow>$file</yellow>).");
+      $this->print("<lightred>Error</lightred>: Could not read GPM file (<yellow>$file</yellow>).", STDERR);
       return false;
     }
 
     if (!isset($info['dependencies']) || !is_array($info['dependencies'])) {
-      $this->print("<lightred>Error</lightred>: Invalid GPM file (<yellow>$file</yellow>).");
+      $this->print("<lightred>Error</lightred>: Invalid GPM file (<yellow>$file</yellow>).", STDERR);
       return false;
     }
 
@@ -306,7 +304,7 @@ class GPM extends CLI {
       if ($versions) {
         $version = $versions[0];
       } else {
-        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.");
+        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.", STDERR);
         return false;
       }
     }
@@ -343,9 +341,9 @@ class GPM extends CLI {
 
       if ($versions) {
         $versions = implode(', ', $versions);
-        $this->print("<lightred>Error</lightred>: Unable to find version <brown>$version</brown> of package <green>$package</green>. Found: $versions...\n");
+        $this->print("<lightred>Error</lightred>: Unable to find version <brown>$version</brown> of package <green>$package</green>. Found: $versions...\n", STDERR);
       } else {
-        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n");
+        $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n", STDERR);
       }
 
       return false;
