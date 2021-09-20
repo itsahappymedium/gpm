@@ -284,11 +284,6 @@ class GPM extends CLI {
 
   public function install($path = null, $install_path = null) {
     if (!($json_file = $this->get_json_file_location($path))) return false;
-
-    $path = dirname($json_file);
-    $install_path = $install_path ? rtrim($install_path, '/') : "$path/gpm_modules";
-    $tmp_path = "$install_path/.tmp";
-
     if (!($info = $this->load_dependencies($json_file))) return false;
 
     $dependency_count = count($info['dependencies']);
@@ -299,8 +294,6 @@ class GPM extends CLI {
         $this->install_package($package, $package_version, $path, $install_path);
       }
 
-      $this->clean_directory($tmp_path, true);
-
       $this->print('Done!');
 
       return true;
@@ -310,10 +303,8 @@ class GPM extends CLI {
   }
 
   public function install_package($package, $version = null, $path = null, $install_path = null, $save = false) {
-    if (!($json_file = $this->get_json_file_location($path))) return false;
-
-    $path = dirname($json_file);
-    $install_path = $install_path ? rtrim($install_path, '/') : "$path/gpm_modules";
+    $dir = dirname($path ?: '.');
+    $install_path = $install_path ? rtrim($install_path, '/') : "$dir/gpm_modules";
     $tmp_path = "$install_path/.tmp";
 
     $package_parts = explode('/', $package);
