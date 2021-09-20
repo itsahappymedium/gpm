@@ -96,13 +96,17 @@ class GPM extends CLI {
   }
 
   protected function create_directory($directory) {
-    $directories = explode('/', $directory);
+    $directories = array_values(array_filter(explode('/', $directory)));
+
+    if (substr($directory, 0, 1) === '/') $directories[0] = '/' . $directories[0];
 
     foreach($directories as $i => $dir) {
       $path = implode('/', array_slice($directories, 0, ($i + 1)));
 
       if (!file_exists($path)) {
-        mkdir($path);
+        if (!@mkdir($path)) {
+          $this->print("<lightred>Error</lightred>: An error occured while attempting to create <yellow>$path</yellow> directory.", STDERR);
+        }
       }
     }
   }
@@ -112,7 +116,7 @@ class GPM extends CLI {
       $empty = true;
 
       foreach(glob("{$directory}/{*,.[!.]*,..?*}", GLOB_BRACE) as $file) {
-        if ($only_delete_if_empty) {
+        if ($only_delete_if_already_empty) {
           $empty = false;
           break;
         }
