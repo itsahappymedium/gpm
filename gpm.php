@@ -3,6 +3,11 @@ use splitbrain\phpcli\CLI;
 use splitbrain\PHPArchive\Zip;
 
 class GPM extends CLI {
+  private $path = null;
+  private $install_path = null;
+  private $save = null;
+  private $json_file = null;
+
   protected function setup($options) {
     $options->setHelp('A PHP Command Line tool that makes it easy to download dependencies from GitHub.');
 
@@ -29,9 +34,16 @@ class GPM extends CLI {
   protected function main($options) {
     $cmd = $options->getCmd();
     $args = $options->getArgs();
-    $path = $options->getOpt('path');
-    $install_path = $options->getOpt('install-path');
-    $save = $options->getOpt('save');
+
+    $this->json_file = rtrim($options->getOpt('path', '.'), '/');
+    $this->path = dirname($this->json_file);
+
+    if ($this->json_file === $this->path) {
+      $this->json_file = $this->path . '/gpm.json';
+    }
+
+    $this->install_path = rtrim($options->getOpt('install-path', $this->path . '/gpm_modules'), '/');
+    $this->save = $options->getOpt('save', false);
 
     switch($cmd) {
       case 'install':
@@ -39,18 +51,18 @@ class GPM extends CLI {
           $package = $args[0];
           $version = isset($args[1]) ? $args[1] : null;
 
-          $this->install_package($package, $version, $path, $install_path, $save);
+          $this->install_package($package, $version);
         } else {
-          $this->install($path, $install_path, $save);
+          $this->install();
         }
 
         break;
       case 'uninstall':
-        $this->uninstall_package($args[0], $path, $install_path, $save);
+        $this->uninstall_package($args[0]);
 
         break;
       case 'init':
-        $this->create_json_file($path);
+        $this->create_json_file();
 
         break;
       case 'versions':
@@ -136,77 +148,48 @@ class GPM extends CLI {
     }
   }
 
-  public function create_json_file($path) {
-    if (!$path) $path = '.';
-
-    if (file_exists($path) && is_dir($path)) {
-      $file = rtrim($path, '/') . '/gpm.json';
-    } else {
-      $file = $path;
-    }
-
-    if (file_exists($file)) {
-      $this->print("<lightred>Error</lightred>: <yellow>$file</yellow> already exists.", STDERR);
+  public function create_json_file() {
+    if (file_exists($this->json_file)) {
+      $this->print("<lightred>Error</lightred>: <yellow>$this->json_file</yellow> already exists.", STDERR);
       return false;
     }
 
+    $this->create_directory($this->path);
+
     $json = json_encode(array('dependencies' => (object) null), JSON_PRETTY_PRINT);
-    $results = file_put_contents($file, stripslashes($json));
+    $results = file_put_contents($this->json_file, stripslashes($json));
 
     if ($results !== false) {
-      $this->print("<yellow>$file</yellow> was created.");
+      $this->print("<yellow>$this->json_file</yellow> was created.");
       return true;
     }
 
     return false;
   }
 
-  public function get_json_file_location($path) {
-    if (!$path) $path = '.';
-
-    if (file_exists($path) && is_dir($path)) {
-      $path = rtrim($path, '/');
-    } else {
-      $json_file = $path;
-      $path = dirname($path);
-    }
-
-    if ($json_file) {
-      if (!file_exists($json_file)) {
-        $this->print("<lightred>Error</lightred>: Could not find <yellow>$json_file</yellow>.", STDERR);
-        return false;
-      }
-    } elseif (file_exists("$path/gpm.json")) {
-      $json_file = "$path/gpm.json";
-    } elseif (file_exists("$path/fec.json")) {
-      $json_file = "$path/fec.json";
-    } else {
-      $this->print("<lightred>Error</lightred>: Could not find <yellow>$path/gpm.json</yellow> or <yellow>$path/fec.json</yellow>.", STDERR);
+  public function load_dependencies() {
+    if (!file_exists($this->json_file)) {
+      $this->print("<lightred>Error</lightred>: Could not find <yellow>$this->json_file</yellow>.", STDERR);
       return false;
     }
 
-    return $json_file;
-  }
-
-  public function load_dependencies($json_file) {
-    $json = @file_get_contents($json_file);
+    $json = @file_get_contents($this->json_file);
 
     if (!($json = @json_decode($json, true))) {
-      $this->print("<lightred>Error</lightred>: An error occured while decoding JSON data (<yellow>$json_file</yellow>).", STDERR);
+      $this->print("<lightred>Error</lightred>: An error occured while decoding JSON data (<yellow>$this->json_file</yellow>).", STDERR);
       return false;
     }
 
     if (!isset($json['dependencies']) || !is_array($json['dependencies'])) {
-      $this->print("<lightred>Error</lightred>: JSON data does not contain a dependencies item (<yellow>$json_file</yellow>).", STDERR);
+      $this->print("<lightred>Error</lightred>: JSON data does not contain a dependencies item (<yellow>$this->json_file</yellow>).", STDERR);
       return false;
     }
 
     return $json;
   }
 
-  public function edit_dependencies($package, $version = false, $path = null) {
-    if (!($json_file = $this->get_json_file_location($path))) return false;
-    if (!($info = $this->load_dependencies($json_file))) return false;
+  public function edit_dependencies($package, $version = false) {
+    if (!($info = $this->load_dependencies())) return false;
 
     if ($version) {
       $info['dependencies'][$package] = $version;
@@ -214,11 +197,10 @@ class GPM extends CLI {
       unset($info['dependencies'][$package]);
     }
 
-    $json_file = $this->get_json_file_location($path);
-    $results = file_put_contents($json_file, stripslashes(json_encode($info, JSON_PRETTY_PRINT)));
+    $results = file_put_contents($this->json_file, stripslashes(json_encode($info, JSON_PRETTY_PRINT)));
 
     if ($results !== false) {
-      $this->print("<yellow>$json_file</yellow> was updated.");
+      $this->print("<yellow>$this->json_file</yellow> was updated.");
       return true;
     }
 
@@ -286,16 +268,15 @@ class GPM extends CLI {
     return false;
   }
 
-  public function install($path = null, $install_path = null) {
-    if (!($json_file = $this->get_json_file_location($path))) return false;
-    if (!($info = $this->load_dependencies($json_file))) return false;
+  public function install() {
+    if (!($info = $this->load_dependencies())) return false;
 
     $dependency_count = count($info['dependencies']);
     $this->print("$dependency_count dependencies found.");
 
     if (isset($info['dependencies'])) {
       foreach($info['dependencies'] as $package => $package_version) {
-        $this->install_package($package, $package_version, $path, $install_path);
+        $this->install_package($package, $package_version);
       }
 
       $this->print('Done!');
@@ -306,10 +287,8 @@ class GPM extends CLI {
     return false;
   }
 
-  public function install_package($package, $version = null, $path = null, $install_path = null, $save = false) {
-    $dir = dirname($path ?: '.');
-    $install_path = $install_path ? rtrim($install_path, '/') : "$dir/gpm_modules";
-    $tmp_path = "$install_path/.tmp";
+  public function install_package($package, $version = null) {
+    $tmp_path = "$this->install_path/.tmp";
 
     $package_parts = explode('/', $package);
     $package_author = $package_parts[0];
@@ -318,13 +297,13 @@ class GPM extends CLI {
     $tmp_author_path = "$tmp_path/$package_author";
     $tmp_package_path = "$tmp_author_path/$package_name.zip";
 
-    $author_path = "$install_path/$package_author";
+    $author_path = "$this->install_path/$package_author";
     $package_path = "$author_path/$package_name";
 
     $download_url = "https://github.com/$package/archive";
     $alt_download_url = null;
 
-    $this->create_directory($install_path);
+    $this->create_directory($this->install_path);
 
     if (!$version) {
       $versions = $this->get_available_package_versions($package, 1);
@@ -407,8 +386,8 @@ class GPM extends CLI {
 
     $this->clean_directory($tmp_path, true);
 
-    if ($save) {
-      $this->edit_dependencies($package, $version, $path);
+    if ($this->save) {
+      $this->edit_dependencies($package, $version);
     }
 
     return array(
@@ -420,25 +399,27 @@ class GPM extends CLI {
     );
   }
 
-  public function uninstall_package($package, $path = null, $install_path = null, $save = false) {
-    $path = $path ? rtrim($path, '/') : '.';
-    $install_path = $install_path ? rtrim($install_path, '/') : "$path/gpm_modules";
-
+  public function uninstall_package($package) {
     $package_parts = explode('/', $package);
     $package_author = $package_parts[0];
     $package_name = $package_parts[1];
 
-    $author_path = "$install_path/$package_author";
+    $author_path = "$this->install_path/$package_author";
     $package_path = "$author_path/$package_name";
 
     if (file_exists($package_path)) {
+      $this->print(" - <purple>Deleting</purple> <brown>$package_path</brown>...");
       $this->clean_directory($package_path, true);
       $this->clean_directory($author_path, true, true);
+    } else {
+      $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n", STDERR);
     }
 
-    if ($save) {
-      $this->edit_dependencies($package, null, $path);
+    if ($this->save) {
+      $this->edit_dependencies($package, null);
     }
+
+    $this->print('Done!');
 
     return true;
   }
