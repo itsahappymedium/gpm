@@ -8,6 +8,7 @@ class GPM extends CLI {
   private $save = null;
   private $json_file = null;
   private $ext = null;
+  private $info = null;
 
   protected function setup($options) {
     $options->setHelp('A PHP Command Line tool that makes it easy to download dependencies from GitHub.');
@@ -49,6 +50,30 @@ class GPM extends CLI {
     $this->ext = array_map(function ($ext) {
       return trim($ext, ' .');
     }, array_filter(explode(',', $options->getOpt('ext', ''))));
+
+    if (in_array($cmd, array('install', 'uninstall')) && file_exists($this->json_file)) {
+      $info = $this->load_json_file();
+
+      if (isset($info['settings']) && isset($info['settings']['gpm'])) {
+        $settings = $info['settings']['gpm'];
+
+        if (isset($settings['install-path']) && !$options->getOpt('install-path')) {
+          $this->install_path = $this->path . '/' . trim($settings['install-path'], '/');
+        }
+
+        if (isset($settings['ext'])) {
+          if (is_array($settings['ext'])) {
+            $settings_ext = $settings['ext'];
+          } else {
+            $settings_ext = explode(',', $settings['ext']);
+          }
+
+          $this->ext = array_merge(array_map(function ($ext) {
+            return trim($ext, ' .');
+          }, array_filter($settings_ext)), $this->ext);
+        }
+      }
+    }
 
     switch($cmd) {
       case 'install':
@@ -172,7 +197,9 @@ class GPM extends CLI {
     return false;
   }
 
-  public function load_dependencies() {
+  public function load_json_file() {
+    if (isset($this->info)) return $this->info;
+
     if (!file_exists($this->json_file)) {
       $this->print("<lightred>Error</lightred>: Could not find <yellow>$this->json_file</yellow>.", STDERR);
       return false;
@@ -190,11 +217,13 @@ class GPM extends CLI {
       return false;
     }
 
+    $this->info = $json;
+
     return $json;
   }
 
   public function edit_dependencies($package, $version = false) {
-    if (!($info = $this->load_dependencies())) return false;
+    if (!($info = $this->load_json_file())) return false;
 
     if ($version) {
       $info['dependencies'][$package] = $version;
@@ -274,7 +303,7 @@ class GPM extends CLI {
   }
 
   public function install() {
-    if (!($info = $this->load_dependencies())) return false;
+    if (!($info = $this->load_json_file())) return false;
 
     $dependency_count = count($info['dependencies']);
     $this->print("$dependency_count dependencies found.");

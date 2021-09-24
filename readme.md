@@ -83,6 +83,28 @@ Generates a `gpm.json` file in the current directory (or whatever directory the 
 Displays information on how to use GPM.
 
 
+## Defining Settings with JSON
+
+You can set the `install-path` and/or `ext` options by defining them in your JSON file like so:
+
+```json
+{
+  "dependencies": {
+    "kazzkiq/balloon.css": "1.0.0",
+    "kraaden/autocomplete": "#c43f2a7"
+  },
+  "settings": {
+    "gpm": {
+      "ext": ["js", "css", "scss"],
+      "install-path": "frontend_dependencies"
+    }
+  }
+}
+```
+
+Both `install-path` and `ext` settings accept a string or an array of strings. The `install-path` defined here is relative to the JSON file.
+
+
 ## Related
 
  - [FEC](https://github.com/itsahappymedium/fec) - A PHP Command Line tool that makes it easy to compile, concat, and minify front-end Javascript and CSS/SCSS dependencies.
