@@ -60,6 +60,8 @@ Set the `--path` or `-p` option to define a path to where the `gpm.json` file is
 
 Set the `--install-path` or `-i` option to define a path to download and extract packages to (Defaults to `gpm_modules` in the current directory).
 
+Set the `--ext` or `-e` option to define file extensions to extract from archives otherwise all files will be extracted (Separate multiple extensions with a comma).
+
 
 ### `gpm uninstall [--save/-s] [--path/-p <path>] [--install-path/-i <path>] <package>`
 

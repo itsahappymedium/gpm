@@ -7,6 +7,7 @@ class GPM extends CLI {
   private $install_path = null;
   private $save = null;
   private $json_file = null;
+  private $ext = null;
 
   protected function setup($options) {
     $options->setHelp('A PHP Command Line tool that makes it easy to download dependencies from GitHub.');
@@ -17,6 +18,7 @@ class GPM extends CLI {
     $options->registerOption('save', 'Adds the package to the gpm.json file.', 's', false, 'install');
     $options->registerOption('path', 'Path to the gpm.json file.', 'p', true, 'install');
     $options->registerOption('install-path', 'Path to install packages.', 'i', true, 'install');
+    $options->registerOption('ext', 'File extensions to extract from archives otherwise all files will be extracted (Separate multiple extensions with a comma).', 'e', true, 'install');
 
     $options->registerCommand('uninstall', 'Uninstalls a package');
     $options->registerArgument('package', 'Package name', true, 'uninstall');
@@ -44,6 +46,9 @@ class GPM extends CLI {
 
     $this->install_path = rtrim($options->getOpt('install-path', $this->path . '/gpm_modules'), '/');
     $this->save = $options->getOpt('save', false);
+    $this->ext = array_map(function ($ext) {
+      return trim($ext, ' .');
+    }, array_filter(explode(',', $options->getOpt('ext', ''))));
 
     switch($cmd) {
       case 'install':
@@ -371,9 +376,16 @@ class GPM extends CLI {
     if ($extension === 'zip') {
       $this->clean_directory($package_path);
 
+      $exclude = '/\.github/i';
+      $include = '';
+
+      if (!empty($this->ext)) {
+        $include = '/.*\.(' . implode('|', $this->ext) . ')$/i';
+      }
+
       $zip = new Zip();
       $zip->open($tmp_package_path);
-      $zip->extract($package_path, 1, '/\.github/');
+      $zip->extract($package_path, 1, $exclude, $include);
 
       unlink($tmp_package_path);
     } else {
