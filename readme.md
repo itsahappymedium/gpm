@@ -17,7 +17,7 @@ When building a site in PHP, the two main options to downloading and installing 
 ### To a package (local)
 
 ```
-composer require itsahappymedium/gpm
+composer require-dev itsahappymedium/gpm
 ./vendor/bin/gpm help
 ```
 
