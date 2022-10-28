@@ -4,6 +4,7 @@ use splitbrain\PHPArchive\Zip;
 
 class GPM extends CLI {
   private $path = null;
+  private $ignore_errors = null;
   private $install_path = null;
   private $save = null;
   private $json_file = null;
@@ -19,6 +20,7 @@ class GPM extends CLI {
     $options->registerOption('save', 'Adds the package to the gpm.json file.', 's', false, 'install');
     $options->registerOption('path', 'Path to the gpm.json file.', 'p', true, 'install');
     $options->registerOption('install-path', 'Path to install packages.', 'i', true, 'install');
+    $options->registerOption('ignore-errors', 'Ignores any errors that occur and continues with installing the rest of the packages.', 'c', false, 'install');
     $options->registerOption('ext', 'File extensions to extract from archives otherwise all files will be extracted (Separate multiple extensions with a comma).', 'e', true, 'install');
 
     $options->registerCommand('uninstall', 'Uninstalls a package');
@@ -46,6 +48,7 @@ class GPM extends CLI {
     }
 
     $this->install_path = rtrim($options->getOpt('install-path', $this->path . '/gpm_modules'), '/');
+    $this->ignore_errors = $options->getOpt('ignore-errors', false);
     $this->save = $options->getOpt('save', false);
     $this->ext = array_map(function ($ext) {
       return trim($ext, ' .');
@@ -101,6 +104,10 @@ class GPM extends CLI {
           $this->print("[ <green>'$versions'</green> ]");
         } else {
           $this->print("<lightred>Error</lightred>: Could not find the package <green>$args[0]</green>.\n", STDERR);
+
+          if (!$this->ignore_errors) {
+            exit(1);
+          }
         }
 
         break;
@@ -148,6 +155,10 @@ class GPM extends CLI {
       if (!file_exists($path)) {
         if (!@mkdir($path)) {
           $this->print("<lightred>Error</lightred>: An error occured while attempting to create <yellow>$path</yellow> directory.", STDERR);
+
+          if (!$this->ignore_errors) {
+            exit(1);
+          }
         }
       }
     }
@@ -202,6 +213,11 @@ class GPM extends CLI {
 
     if (!file_exists($this->json_file)) {
       $this->print("<lightred>Error</lightred>: Could not find <yellow>$this->json_file</yellow>.", STDERR);
+
+      if (!$this->ignore_errors) {
+        exit(1);
+      }
+
       return false;
     }
 
@@ -209,11 +225,21 @@ class GPM extends CLI {
 
     if (!($json = @json_decode($json, true))) {
       $this->print("<lightred>Error</lightred>: An error occured while decoding JSON data (<yellow>$this->json_file</yellow>).", STDERR);
+
+      if (!$this->ignore_errors) {
+        exit(1);
+      }
+
       return false;
     }
 
     if (!isset($json['dependencies']) || !is_array($json['dependencies'])) {
       $this->print("<lightred>Error</lightred>: JSON data does not contain a dependencies item (<yellow>$this->json_file</yellow>).", STDERR);
+
+      if (!$this->ignore_errors) {
+        exit(1);
+      }
+
       return false;
     }
 
@@ -310,7 +336,11 @@ class GPM extends CLI {
 
     if (isset($info['dependencies'])) {
       foreach($info['dependencies'] as $package => $package_version) {
-        $this->install_package($package, $package_version);
+        $package_info = $this->install_package($package, $package_version);
+
+        if (!$this->ignore_errors && !$package_info) {
+          exit(1);
+        }
       }
 
       $this->print('Done!');
@@ -346,6 +376,11 @@ class GPM extends CLI {
         $version = $versions[0];
       } else {
         $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.", STDERR);
+
+        if (!$this->ignore_errors) {
+          exit(1);
+        }
+
         return false;
       }
     }
@@ -383,8 +418,16 @@ class GPM extends CLI {
       if ($versions) {
         $versions = implode(', ', $versions);
         $this->print("<lightred>Error</lightred>: Unable to find version <brown>$version</brown> of package <green>$package</green>. Found: $versions...\n", STDERR);
+
+        if (!$this->ignore_errors) {
+          exit(1);
+        }
       } else {
         $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n", STDERR);
+
+        if (!$this->ignore_errors) {
+          exit(1);
+        }
       }
 
       return false;
@@ -454,6 +497,10 @@ class GPM extends CLI {
       $this->clean_directory($author_path, true, true);
     } else {
       $this->print("<lightred>Error</lightred>: Could not find the package <green>$package</green>.\n", STDERR);
+
+      if (!$this->ignore_errors) {
+        exit(1);
+      }
     }
 
     if ($this->save) {
